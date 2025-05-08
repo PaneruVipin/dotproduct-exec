@@ -4,37 +4,39 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'frontend/**'  
+    # paths:
+    #   - 'frontend/**'
 
 jobs:
   deploy:
-    name: "Deploy"
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the code from the repository
-      - uses: actions/checkout@v1
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      # Set up Node.js (ensure the correct version is used)
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20.x'
 
-      # Install dependencies using npm ci
       - name: Install dependencies
         working-directory: frontend
-        run: npm ci
+        run: npm install
 
-      - name: Install Netlify CLI
+      - name: Install Netlify CLI globally
         run: npm install -g netlify-cli
 
-      # Deploy to Netlify using the action
-      - uses: veloii/action-netlify-deploy@v2.2.1
-        with:
+      - name: Build project
+        working-directory: frontend
+        run: npm run build
+
+      - name: Deploy to Netlify (frontend SSR)
+        env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: f8394c1b-7b94-4b51-a76f-bf5c8f6b96bc
-          NETLIFY_DEPLOY_MESSAGE: "Prod deploy v${{ github.ref }}"
-          NETLIFY_DEPLOY_TO_PROD: true
-          deploy_alias: frontend
+        run: |
+          netlify deploy \
+            --dir=frontend/.next \
+            --functions=frontend/.netlify/functions \
+            --site=f8394c1b-7b94-4b51-a76f-bf5c8f6b96bc \
+            --prod
