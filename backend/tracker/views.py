@@ -1,4 +1,4 @@
-from rest_framework import  serializers, viewsets, permissions, generics
+from rest_framework import  serializers, viewsets, permissions, generics, status
 from django.contrib.auth.models import User
 from .models import Category, Transaction, MonthlyBudget
 from .serializers import (
@@ -15,6 +15,12 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import action
 from datetime import date
 
+class SoftDeleteModelViewSet(viewsets.ModelViewSet):
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 class MonthlyBudgetPagination(PageNumberPagination):
     page_size = 10 # You can set the page size you want
     page_size_query_param = 'page_size'
@@ -27,32 +33,32 @@ class MonthlyBudgetViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        return MonthlyBudget.objects.filter(user=user).order_by('-month') 
+        return MonthlyBudget.objects.filter(user=user, is_active=True).order_by('-month') 
     @action(detail=False, methods=['get'], url_path='current-month')
     def get_current_month_budget(self, request):
         user = request.user
         current_month = date.today().replace(day=1)  # Get the first day of the current month
         try:
-            current_budget = MonthlyBudget.objects.get(user=user, month=current_month)
+            current_budget = MonthlyBudget.objects.get(user=user, month=current_month, is_active=True)
             serializer = self.get_serializer(current_budget)
             return Response(serializer.data)
         except MonthlyBudget.DoesNotExist:
             return Response({"detail": "No budget found for the current month."}, status=status.HTTP_404_NOT_FOUND)
 
 
-class CategoryViewSet(viewsets.ModelViewSet):
+class CategoryViewSet(SoftDeleteModelViewSet):
     serializer_class = CategorySerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Category.objects.filter(user=self.request.user)
+        return Category.objects.filter(user=self.request.user, is_active=True)
 
-class TransactionViewSet(viewsets.ModelViewSet):
+class TransactionViewSet(SoftDeleteModelViewSet):
     serializer_class = TransactionSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Transaction.objects.filter(user=self.request.user)
+        return Transaction.objects.filter(user=self.request.user, is_active=True).order_by('-created_at')
 
 class RegisterUserView(generics.CreateAPIView):
     queryset = User.objects.all()

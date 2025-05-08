@@ -29,6 +29,10 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class TransactionSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    category = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.filter() 
+    )
+    category_detail = CategorySerializer(source='category', read_only=True)
     class Meta:
         model = Transaction
         fields = '__all__'
