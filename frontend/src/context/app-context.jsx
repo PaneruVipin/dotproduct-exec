@@ -11,6 +11,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const AppContext = createContext(undefined);
 
+const ITEMS_PER_PAGE = 5; // Default items per page, matches backend if backend has fixed page size
+
 const MOCK_TRANSACTIONS = [
     { id: 'txn1', type: 'income', description: 'Monthly Salary', amount: 2500, categoryId: 'cat-mock-income', date: format(new Date(new Date().setDate(1)), 'yyyy-MM-dd') },
     { id: 'txn2', type: 'expense', description: 'Weekly Groceries', amount: 85.50, categoryId: 'cat-mock-expense1', date: format(new Date(new Date().setDate(2)), 'yyyy-MM-dd') },
@@ -48,6 +50,7 @@ export const AppProvider = ({ children }) => {
 
   const [transactionFilters, setTransactionFilters] = useState({});
   const [selectedDashboardMonth, setSelectedDashboardMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const [currentPage, setCurrentPage] = useState(1);
 
   const makeAuthenticatedRequest = useCallback(async (urlPath, options = {}) => {
     try {
@@ -76,8 +79,9 @@ export const AppProvider = ({ children }) => {
   });
   const baseCategories = categoriesData || [];
 
+
   const { data: transactionsData, isLoading: transactionsDataLoading, error: transactionsError } = useQuery({
-    queryKey: ['transactions', transactionFilters],
+    queryKey: ['transactions', transactionFilters, currentPage],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (transactionFilters.amount_min) params.append('amount_min', transactionFilters.amount_min);
@@ -86,21 +90,48 @@ export const AppProvider = ({ children }) => {
       if (transactionFilters.date_to) params.append('date_to', format(transactionFilters.date_to, 'yyyy-MM-dd'));
       if (transactionFilters.category && transactionFilters.category !== 'all') params.append('category', transactionFilters.category);
       if (transactionFilters.search) params.append('search', transactionFilters.search);
+      if (currentPage > 1) params.append('page', currentPage.toString());
+      
       const queryString = params.toString();
       return makeAuthenticatedRequest(`/api/transactions/${queryString ? `?${queryString}` : ''}`);
     },
     enabled: isAuthenticatedRedux && !!authTokenRedux,
-    select: (data) => (data?.results || []).map(txn => ({
-        id: txn.id,
-        amount: parseFloat(txn.amount),
-        description: txn.description,
-        date: txn.created_at ? format(parseISO(txn.created_at), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
-        categoryId: txn.category,
-        type: txn.category_detail?.type || 'expense',
-    })).sort((a,b) => new Date(b.date) - new Date(a.date)),
+    placeholderData: (previousData) => previousData, // Keep previous data while loading new page
   });
-  const transactions = transactionsData || [];
+  
+  const transactions = useMemo(() => (transactionsData?.results || []).map(txn => ({
+    id: txn.id,
+    amount: parseFloat(txn.amount),
+    description: txn.description,
+    date: txn.created_at ? format(parseISO(txn.created_at), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+    categoryId: txn.category,
+    type: txn.category_detail?.type || 'expense',
+  })), [transactionsData]);
+
+  const transactionsCount = transactionsData?.count || 0;
+  const transactionsNextPage = transactionsData?.next;
+  const transactionsPreviousPage = transactionsData?.previous;
+  const totalTransactionPages = Math.ceil(transactionsCount / ITEMS_PER_PAGE); // Assuming backend uses a consistent page size or we define one
+
   const transactionsLoading = transactionsDataLoading;
+
+  const applyTransactionFilters = useCallback((filters) => {
+    setTransactionFilters(filters);
+    setCurrentPage(1); 
+  }, []);
+
+  const goToNextPage = useCallback(() => {
+    if (transactionsNextPage) {
+      setCurrentPage(prev => prev + 1);
+    }
+  }, [transactionsNextPage]);
+
+  const goToPreviousPage = useCallback(() => {
+    if (transactionsPreviousPage) {
+      setCurrentPage(prev => Math.max(1, prev - 1));
+    }
+  }, [transactionsPreviousPage]);
+
 
   const { data: currentMonthRawBudget, isLoading: budgetLoading, error: budgetError } = useQuery({
     queryKey: ['currentMonthBudget'],
@@ -290,7 +321,7 @@ export const AppProvider = ({ children }) => {
   }, [categoriesWithSpentData, baseCategories]);
 
 
-  const financialDataLoading = categoriesLoading || transactionsLoading || budgetLoading || dashboardStatsLoading;
+  const financialDataLoading = categoriesLoading || budgetLoading || dashboardStatsLoading; // Note: transactionsDataLoading is handled per page for pagination
 
   const value = useMemo(() => {
     if (!isAuthenticatedRedux && !authIsLoadingRedux) { 
@@ -303,6 +334,11 @@ export const AppProvider = ({ children }) => {
         budgetRemaining: parseFloat(MOCK_BUDGET_DEFINITION.amount) - MOCK_DASHBOARD_STATS.total_expense,
         transactions: MOCK_TRANSACTIONS,
         transactionsLoading: false,
+        transactionsCount: MOCK_TRANSACTIONS.length,
+        totalTransactionPages: 1,
+        currentPage,
+        goToNextPage: () => {},
+        goToPreviousPage: () => {},
         applyTransactionFilters: (filters) => {},
         addTransaction: (data) => toast({ title: "Mock Action", description: "Transaction added (mock)."}),
         editTransaction: (data) => toast({ title: "Mock Action", description: "Transaction edited (mock)."}),
@@ -334,7 +370,12 @@ export const AppProvider = ({ children }) => {
       budgetRemaining: budgetRemainingForCurrentMonth,
       transactions,
       transactionsLoading,
-      applyTransactionFilters: setTransactionFilters,
+      transactionsCount,
+      totalTransactionPages,
+      currentPage,
+      goToNextPage,
+      goToPreviousPage,
+      applyTransactionFilters,
       addTransaction: addTransactionMutation,
       editTransaction: editTransactionMutation,
       deleteTransaction: deleteTransactionMutation,
@@ -349,18 +390,19 @@ export const AppProvider = ({ children }) => {
       dashboardStatsLoading,
       selectedDashboardMonth,
       setSelectedDashboardMonth,
-      financialDataLoaded: !authIsLoadingRedux && !financialDataLoading && (!!categoriesData && !!transactionsData && dashboardStats !== undefined),
+      financialDataLoaded: !authIsLoadingRedux && !financialDataLoading && (!!categoriesData && dashboardStats !== undefined),
       makeAuthenticatedRequest,
       errors: { categoriesError, transactionsError, budgetError, dashboardStatsError }
   }}, [
       isAuthenticatedRedux, userRedux, authIsLoadingRedux,
       budgetForPage, currentMonthRawBudget, addOrUpdateBudgetMutation, budgetSpentForCurrentMonth, budgetRemainingForCurrentMonth,
-      transactions, transactionsLoading, setTransactionFilters, addTransactionMutation, editTransactionMutation, deleteTransactionMutation,
+      transactions, transactionsLoading, transactionsCount, totalTransactionPages, currentPage, goToNextPage, goToPreviousPage, applyTransactionFilters,
+      addTransactionMutation, editTransactionMutation, deleteTransactionMutation,
       categoriesWithSpentData, baseCategories, addCategoryMutation, editCategoryMutation, deleteCategory, getCategoryById,
       totalIncome, totalExpenses, balance,
       dashboardStats, dashboardStatsLoading, selectedDashboardMonth, setSelectedDashboardMonth,
       financialDataLoading, makeAuthenticatedRequest,
-      categoriesData, transactionsData,
+      categoriesData,
       categoriesError, transactionsError, budgetError, dashboardStatsError,
       toast
   ]);
@@ -375,3 +417,4 @@ export const useAppContext = () => {
   }
   return context;
 };
+

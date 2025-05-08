@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -23,8 +22,6 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-
-const ITEMS_PER_PAGE = 10;
 
 const DatePicker = ({ date, setDate, placeholder = "Pick a date", disabled = false }) => {
   const [isClient, setIsClient] = useState(false);
@@ -75,6 +72,11 @@ export default function TransactionsPage() {
     getCategoryById,
     financialDataLoaded, 
     isAuthenticated,
+    transactionsCount,
+    totalTransactionPages,
+    currentPage,
+    goToNextPage,
+    goToPreviousPage,
   } = useAppContext();
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -89,7 +91,6 @@ export default function TransactionsPage() {
     amountMax: '',
   });
 
-  const [currentPage, setCurrentPage] = useState(1);
   const [sortKey, setSortKey] = useState('date'); 
   const [sortDirection, setSortDirection] = useState('desc');
 
@@ -99,7 +100,6 @@ export default function TransactionsPage() {
 
 
   const handleApplyFilters = () => {
-    setCurrentPage(1); 
     const filtersToApply = {
         search: localFilters.searchTerm,
         category: localFilters.filterCategory,
@@ -125,7 +125,6 @@ export default function TransactionsPage() {
         amountMin: '',
         amountMax: '',
     });
-    setCurrentPage(1);
     applyTransactionFilters({}); 
   };
   
@@ -166,12 +165,6 @@ export default function TransactionsPage() {
   }, [transactions, sortKey, sortDirection, getCategoryById]);
 
 
-  const totalPages = Math.ceil(sortedTransactions.length / ITEMS_PER_PAGE);
-  const paginatedTransactions = sortedTransactions.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
-
   const handleAddClick = () => {
     setEditingTransaction(null);
     setIsDialogOpen(true);
@@ -189,7 +182,6 @@ export default function TransactionsPage() {
             setSortKey(key);
             setSortDirection('asc');
         }
-        setCurrentPage(1); 
    };
 
   const renderSortIcon = (key) => {
@@ -296,10 +288,10 @@ export default function TransactionsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {transactionsLoading ? ( 
+                  {transactionsLoading && sortedTransactions.length === 0 ? ( 
                     <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">Loading transactions...</TableCell></TableRow>
-                  ) : paginatedTransactions.length > 0 ? (
-                    paginatedTransactions.map((txn) => {
+                  ) : sortedTransactions.length > 0 ? (
+                    sortedTransactions.map((txn) => {
                         const category = getCategoryById(txn.categoryId); 
                         return (
                            <TableRow key={txn.id}>
@@ -356,32 +348,32 @@ export default function TransactionsPage() {
       </Card>
 
 
-      {totalPages > 1 && !transactionsLoading && (
+      {totalTransactionPages > 1 && (
         <div className="flex justify-center items-center space-x-2 pt-4">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
+            onClick={goToPreviousPage}
+            disabled={currentPage === 1 || transactionsLoading}
           >
             Previous
           </Button>
           <span className="text-sm text-muted-foreground">
-            Page {currentPage} of {totalPages}
+            Page {currentPage} of {totalTransactionPages}
           </span>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
+            onClick={goToNextPage}
+            disabled={currentPage === totalTransactionPages || transactionsLoading}
           >
             Next
           </Button>
         </div>
       )}
-      {paginatedTransactions.length === 0 && !transactionsLoading && sortedTransactions.length > 0 && (
+      {transactions.length === 0 && !transactionsLoading && transactionsCount > 0 && (
          <p className="text-center text-muted-foreground pt-2">
-            All filtered transactions are displayed on this page.
+            All filtered transactions are displayed on this page or previous pages.
          </p>
       )}
 
@@ -394,3 +386,4 @@ export default function TransactionsPage() {
     </div>
   );
 }
+
