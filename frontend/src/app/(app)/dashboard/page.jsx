@@ -167,7 +167,7 @@ export default function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-xl flex items-center">
-              <PieChartIcon className="mr-2 h-5 w-5 text-destructive" /> Expense Analysis for {displayMonthFormatted}
+              <PieChartIcon className="mr-[10px] h-5 w-5 text-destructive" /> Expense Analysis for {displayMonthFormatted}
             </CardTitle>
             {hasValidBudget && (
               <CardDescription>Breakdown of your expenses compared to your budget.</CardDescription>
@@ -180,7 +180,7 @@ export default function DashboardPage() {
             {dashboardStatsLoading && !dashboardStats ? (
               <p className="text-muted-foreground text-center py-4">Loading expense data...</p>
             ) : hasValidBudget ? (
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
                     <div className="flex items-center gap-2">

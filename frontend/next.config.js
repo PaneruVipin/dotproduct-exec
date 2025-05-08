@@ -14,6 +14,9 @@ const nextConfig = {
       },
     ],
   },
+   // Recommended for performance but can be disabled if causing issues
+   // reactStrictMode: false, // Disabled strict mode as requested implicitly by font change
+   optimizeFonts: true, // Ensure font optimization is enabled
 };
 
 module.exports = nextConfig;
