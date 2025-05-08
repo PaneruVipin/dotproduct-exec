@@ -1,0 +1,43 @@
+# === Python / Django ===
+*.py[cod]
+__pycache__/
+**/__pycache__/
+*.pyc
+*.sqlite3
+*.log
+
+# Django migrations (ignore all except __init__.py)
+**/migrations/
+!**/migrations/__init__.py
+
+# Secret files
+.env
+*.env
+
+# === Virtual Environments ===
+env/
+venv/
+ENV/
+.venv/
+
+# === macOS ===
+.DS_Store
+
+# === VS Code ===
+.vscode/
+
+# === PyCharm ===
+.idea/
+
+# === Node / Frontend (if using React, Next.js, etc.) ===
+node_modules/
+*.tsbuildinfo
+*.lock
+dist/
+build/
+.next/
+out/
+
+# === System Files ===
+Thumbs.db
+ehthumbs.db
