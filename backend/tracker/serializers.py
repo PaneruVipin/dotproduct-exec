@@ -114,3 +114,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name']
+        
+class MonthlyStatsSerializer(serializers.Serializer):
+    month = serializers.DateField()
+    budget = serializers.DecimalField(max_digits=10, decimal_places=2)
+    total_income = serializers.DecimalField(max_digits=10, decimal_places=2)
+    total_expense = serializers.DecimalField(max_digits=10, decimal_places=2)
+    category_summary = serializers.DictField(child=serializers.DecimalField(max_digits=10, decimal_places=2))

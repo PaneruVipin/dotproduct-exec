@@ -5,8 +5,8 @@ from .views import (
     TransactionViewSet,
     MonthlyBudgetViewSet,
     RegisterUserView,
-    RegisterSerializer,
-    UserProfileView
+    UserProfileView,
+    MonthlyStatsAPIView
 )
 
 router = DefaultRouter()
@@ -17,5 +17,6 @@ router.register(r'monthly-budgets', MonthlyBudgetViewSet, basename='monthlybudge
 urlpatterns = router.urls + [
     path('register/', RegisterUserView.as_view(), name='register'),
     path('profile/', UserProfileView.as_view(), name='user-profile'),
+    path("stats/", MonthlyStatsAPIView.as_view(), name="monthly-stats"),
 ]
 

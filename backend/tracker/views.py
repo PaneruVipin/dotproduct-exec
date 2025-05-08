@@ -5,7 +5,8 @@ from .serializers import (
     CategorySerializer,
     TransactionSerializer,
     MonthlyBudgetSerializer,
-    RegisterSerializer
+    RegisterSerializer,
+    MonthlyStatsSerializer
 )
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -14,6 +15,66 @@ from .serializers import UserProfileSerializer
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import action
 from datetime import date
+from django.db.models import Sum, F
+
+class MonthlyStatsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        query_month = request.query_params.get("month")
+
+        try:
+            query_date = date.fromisoformat(query_month + "-01") if query_month else date.today().replace(day=1)
+        except ValueError:
+            return Response({"error": "Invalid month format. Use YYYY-MM."}, status=400)
+
+        # Budget
+        budget = (
+            MonthlyBudget.objects.filter(user=user, month=query_date, is_active=True)
+            .values_list("amount", flat=True)
+            .first()
+        ) or 0
+
+        # Transactions for the month
+        transactions = (
+            Transaction.objects.filter(
+                user=user,
+                created_at__year=query_date.year,
+                created_at__month=query_date.month,
+                is_active=True,
+                category__is_active=True  # Optional: if you soft-delete categories
+            )
+            .values(category_type=F("category__type"), category_name=F("category__name"))
+            .annotate(total_amount=Sum("amount"))
+        )
+
+        income_categories = []
+        expense_categories = []
+        total_income = 0
+        total_expense = 0
+
+        for item in transactions:
+            data = {
+                "category": item["category_name"],
+                "amount": item["total_amount"]
+            }
+            if item["category_type"] == "income":
+                income_categories.append(data)
+                total_income += item["total_amount"]
+            else:
+                expense_categories.append(data)
+                total_expense += item["total_amount"]
+
+        return Response({
+            "month": query_date.strftime("%Y-%m"),
+            "budget": budget,
+            "total_income": total_income,
+            "total_expense": total_expense,
+            "income_categories": income_categories,
+            "expense_categories": expense_categories
+        })
+
 
 class SoftDeleteModelViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
@@ -34,6 +95,7 @@ class MonthlyBudgetViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         return MonthlyBudget.objects.filter(user=user, is_active=True).order_by('-month') 
+    
     @action(detail=False, methods=['get'], url_path='current-month')
     def get_current_month_budget(self, request):
         user = request.user
