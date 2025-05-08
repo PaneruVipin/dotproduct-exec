@@ -9,14 +9,29 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = '__all__'
-        exclude = ['user']
+        
+    def validate(self, attrs):
+        user = self.context['request'].user
+        name = attrs.get('name', '').strip().lower()
+
+        # Exclude current instance when updating
+        qs = Category.objects.filter(
+            user=user,
+            name__iexact=name
+        )
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+
+        if qs.exists():
+            raise serializers.ValidationError({'name': 'Category with this name already exists for this user.'})
+
+        return attrs    
 
 class TransactionSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
     class Meta:
         model = Transaction
         fields = '__all__'
-        exclude = ['user']
         
 class MonthlyBudgetSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())

@@ -16,7 +16,7 @@ from rest_framework.decorators import action
 from datetime import date
 
 class MonthlyBudgetPagination(PageNumberPagination):
-    page_size = 2 # You can set the page size you want
+    page_size = 10 # You can set the page size you want
     page_size_query_param = 'page_size'
     max_page_size = 100  # The maximum number of results per page
 
