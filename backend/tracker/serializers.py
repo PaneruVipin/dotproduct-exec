@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Category, Transaction, MonthlyBudget
+from datetime import date
+from .models import MonthlyBudget
 
 class CategorySerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
@@ -15,38 +17,50 @@ class TransactionSerializer(serializers.ModelSerializer):
         model = Transaction
         fields = '__all__'
         exclude = ['user']
-
+        
 class MonthlyBudgetSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    month = serializers.DateField(read_only=True)  # Only auto-set in create
 
     class Meta:
         model = MonthlyBudget
-        fields = '__all__'
+        fields = ['id', 'user', 'month', 'amount']
+        read_only_fields = ['id', 'user', 'month']
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance:  # This means it's an update
-            self.fields['month'].read_only = True
+    def to_internal_value(self, data):
+        # Force 'month' to current month in POST
+        if self.instance is None:  # Creation
+            data = data.copy()
+            data['month'] = date.today().replace(day=1).isoformat()
+        return super().to_internal_value(data)
 
-    def validate_month(self, value):
+    def validate(self, attrs):
         user = self.context['request'].user
+        today = date.today().replace(day=1)
 
-        if self.instance and self.instance.month == value:
-            return value
+        # If creating, ensure this user doesn't already have a budget for this month
+        if self.instance is None:
+            exists = MonthlyBudget.objects.filter(user=user, month=today).exists()
+            if exists:
+                raise serializers.ValidationError("You already have a budget for this month.")
 
-        exists = MonthlyBudget.objects.filter(
-            user=user,
-            month__year=value.year,
-            month__month=value.month
-        ).exists()
+        # If updating, restrict changes to current month only
+        if self.instance:
+            if self.instance.month != today:
+                raise serializers.ValidationError("You can only update the current month's budget.")
 
-        if exists:
-            raise serializers.ValidationError("Budget already exists for this month.")
-        return value
+        return attrs
 
     def create(self, validated_data):
-        validated_data['user'] = self.context['request'].user
+        validated_data['month'] = date.today().replace(day=1)
         return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        # Only 'amount' should be allowed in updates
+        instance.amount = validated_data.get('amount', instance.amount)
+        instance.save()
+        return instance
+
 
 class RegisterSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField()

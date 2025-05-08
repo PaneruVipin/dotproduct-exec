@@ -13,6 +13,7 @@ __pycache__/
 # Secret files
 .env
 *.env
+.env.*
 
 # === Virtual Environments ===
 env/
