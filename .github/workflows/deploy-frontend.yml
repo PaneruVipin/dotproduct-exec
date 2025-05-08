@@ -27,6 +27,9 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Install Netlify CLI
+        run: npm install -g netlify-cli
+
       # Deploy to Netlify using the action
       - uses: veloii/action-netlify-deploy@v2.2.1
         with:
