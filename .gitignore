@@ -42,3 +42,8 @@ out/
 # === System Files ===
 Thumbs.db
 ehthumbs.db
+
+**node_modules/*
+**/dist/*
+**/build/*
+**.next/*
