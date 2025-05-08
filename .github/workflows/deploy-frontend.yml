@@ -4,16 +4,15 @@ on:
   push:
     branches:
       - main
-    # paths:
-    #   - 'frontend/**'
+    paths:
+      - 'frontend/**'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -24,19 +23,17 @@ jobs:
         working-directory: frontend
         run: npm install
 
-      - name: Install Netlify CLI globally
-        run: npm install -g netlify-cli
-
       - name: Build project
         working-directory: frontend
         run: npm run build
 
-      - name: Deploy to Netlify (frontend SSR)
+      - name: Install Netlify CLI
+        run: npm install -g netlify-cli
+
+      - name: Deploy to Netlify (with plugin)
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
         run: |
           netlify deploy \
-            --dir=frontend/.next \
-            --functions=frontend/.netlify/functions \
-            --site=f8394c1b-7b94-4b51-a76f-bf5c8f6b96bc \
+            --site f8394c1b-7b94-4b51-a76f-bf5c8f6b96bc \
             --prod
