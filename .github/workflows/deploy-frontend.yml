@@ -37,3 +37,4 @@ jobs:
           NETLIFY_SITE_ID: f8394c1b-7b94-4b51-a76f-bf5c8f6b96bc
           NETLIFY_DEPLOY_MESSAGE: "Prod deploy v${{ github.ref }}"
           NETLIFY_DEPLOY_TO_PROD: true
+          build_directory: frontend/out
