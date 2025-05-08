@@ -16,6 +16,9 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import action
 from datetime import date
 from django.db.models import Sum, F
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter
+from .filters import TransactionFilter
 
 class MonthlyStatsAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -115,9 +118,14 @@ class CategoryViewSet(SoftDeleteModelViewSet):
     def get_queryset(self):
         return Category.objects.filter(user=self.request.user, is_active=True)
 
+
+
 class TransactionViewSet(SoftDeleteModelViewSet):
     serializer_class = TransactionSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_class = TransactionFilter
+    search_fields = ['description']
 
     def get_queryset(self):
         return Transaction.objects.filter(user=self.request.user, is_active=True).order_by('-created_at')
