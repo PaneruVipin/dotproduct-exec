@@ -6,7 +6,8 @@ from .views import (
     MonthlyBudgetViewSet,
     RegisterUserView,
     UserProfileView,
-    MonthlyStatsAPIView
+    MonthlyStatsAPIView,
+    api_root
 )
 
 router = DefaultRouter()
@@ -19,4 +20,3 @@ urlpatterns = router.urls + [
     path('profile/', UserProfileView.as_view(), name='user-profile'),
     path("stats/", MonthlyStatsAPIView.as_view(), name="monthly-stats"),
 ]
-

@@ -19,6 +19,7 @@ from django.db.models import Sum, F
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter
 from .filters import TransactionFilter
+from rest_framework.decorators import api_view
 
 class MonthlyStatsAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -143,3 +144,16 @@ class UserProfileView(APIView):
     def get(self, request):
         serializer = UserProfileSerializer(request.user)
         return Response(serializer.data)
+    
+
+@api_view(["GET"])
+def api_root(request):
+    return Response({
+        "categories": "/api/categories/",
+        "transactions": "/api/transactions/",
+        "monthly-budgets": "/api/monthly-budgets/",
+        "stats": "/api/stats/",
+        "register": "/api/register/",
+        "login (JWT)": "/api/token/",
+        "refresh token": "/api/token/refresh/"
+    })
