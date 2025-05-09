@@ -7,7 +7,6 @@ from .views import (
     RegisterUserView,
     UserProfileView,
     MonthlyStatsAPIView,
-    api_root
 )
 
 router = DefaultRouter()

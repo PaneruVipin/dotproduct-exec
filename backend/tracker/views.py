@@ -145,15 +145,3 @@ class UserProfileView(APIView):
         serializer = UserProfileSerializer(request.user)
         return Response(serializer.data)
     
-
-@api_view(["GET"])
-def api_root(request):
-    return Response({
-        "categories": "/api/categories/",
-        "transactions": "/api/transactions/",
-        "monthly-budgets": "/api/monthly-budgets/",
-        "stats": "/api/stats/",
-        "register": "/api/register/",
-        "login (JWT)": "/api/token/",
-        "refresh token": "/api/token/refresh/"
-    })
