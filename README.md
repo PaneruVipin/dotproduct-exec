@@ -7,7 +7,7 @@ A full-stack personal budget management application where users can track income
 ## 🌐 Live Demo
 
 - **Frontend:** [https://vipin-dotproduct.netlify.app/](https://vipin-dotproduct.netlify.app/)
-- **Backend (DRF Browsable API):** [https://dotproduct-exec.onrender.com](https://dotproduct-exec.onrender.com)
+- **Backend (DRF Browsable API):** [https://dotproduct-exec.onrender.com/api/](https://dotproduct-exec.onrender.com/api/)
   > ⚠️ _Note: The backend is hosted on Render free tier. Cold start may cause delay on the first request. PostgreSQL instance will expire around **June 5, 2025**._
 
 ---
