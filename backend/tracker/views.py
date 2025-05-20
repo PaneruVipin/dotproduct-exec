@@ -115,9 +115,18 @@ class MonthlyBudgetViewSet(viewsets.ModelViewSet):
 class CategoryViewSet(SoftDeleteModelViewSet):
     serializer_class = CategorySerializer
     permission_classes = [permissions.IsAuthenticated]
-
+    pagination_class = None
     def get_queryset(self):
         return Category.objects.filter(user=self.request.user, is_active=True)
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({
+            "count": len(serializer.data),
+            "next": None,
+            "previous": None,
+            "results": serializer.data
+        })
 
 
 

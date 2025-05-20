@@ -3,7 +3,7 @@ import axios from 'axios';
 import { store } from '@/store'; 
 import { logout } from '@/store/authSlice';
 
-const API_BASE_URL = 'https://dotproduct-exec.onrender.com';
+const API_BASE_URL =  process.env.NEXT_PUBLIC_API_URL ||'https://dotproduct-exec.onrender.com';
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
